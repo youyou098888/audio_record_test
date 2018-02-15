@@ -9,14 +9,14 @@
 
   <script src="../../node_modules/video.js/dist/video.min.js"></script>
   <script src="../../node_modules/webrtc-adapter/out/adapter.js"></script>
-  <script src="../../node_modules/recorderjs/dist/recorder.js"></script>
+  <script src="./recorder.js"></script>
   <script src="../../node_modules/wavesurfer.js/dist/wavesurfer.min.js"></script>
   <script src="../../node_modules/wavesurfer.js/dist/plugin/wavesurfer.microphone.min.js"></script>
   <script src="../../node_modules/videojs-wavesurfer/dist/videojs.wavesurfer.min.js"></script>
 
   <script src="../../dist/videojs.record.js"></script>
   <script src="../../dist/plugins/videojs.record.recorderjs.js"></script>
-
+  <script src="../../node_modules/fine-uploader/fine-uploader/fine-uploader.js"></script>
   <style>
   /* change player background color */
   #myAudio {
@@ -27,7 +27,9 @@
 <body>
 
 <audio id="myAudio" class="video-js vjs-default-skin"></audio>
-
+<div>
+  <span id="resultTxt">识别结果：</span>
+</div>
 <script>
 var player = videojs("myAudio", {
     controls: true,
@@ -49,7 +51,9 @@ var player = videojs("myAudio", {
             video: false,
             maxLength: 20,
             debug: true,
-            audioEngine: "recorder.js"
+            audioEngine: "recorder.js",
+            audioChannels: 1
+            // audioSampleRate: 32000
         }
     }
 }, function() {
@@ -58,7 +62,25 @@ var player = videojs("myAudio", {
         'with videojs-record', videojs.getPluginVersion('record'),
         'and videojs-wavesurfer', videojs.getPluginVersion('wavesurfer'));
 });
-
+// initialize Fine Uploader
+var uploader = new qq.FineUploaderBasic({
+    debug: true,
+    request: {
+        endpoint: 'http://127.0.0.1:8000/webiat/'
+    },
+    validation: {
+        allowedExtensions: ['mp3', 'ogg', 'oga', 'ogg']
+    },
+    callbacks: {
+      //上传完成后
+      onComplete: function(id, fileName, responseJSON) {
+        console.log(id, fileName, responseJSON)
+        var resultTxt = "识别结果：" + responseJSON['result'];
+        document.getElementById('resultTxt').innerHTML = resultTxt;
+        
+      }
+    }
+});
 // error handling
 player.on('deviceError', function() {
     console.log('device error:', player.deviceErrorCode);
@@ -76,7 +98,11 @@ player.on('startRecord', function() {
 player.on('finishRecord', function() {
     // the blob object contains the recorded data that
     // can be downloaded by the user, stored on server etc.
-    console.log('finished recording: ', player.recordedData);
+    var audioFile = player.recordedData;
+    console.log('finished recording: ', audioFile);
+    // upload data to server
+    var filesList = [audioFile];
+    uploader.addFiles(filesList);
 });
 </script>
 </body>

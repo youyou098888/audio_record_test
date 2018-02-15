@@ -6,6 +6,8 @@
 
   <link href="../node_modules/video.js/dist/video-js.min.css" rel="stylesheet">
   <link href="../dist/css/videojs.record.css" rel="stylesheet">
+  <script src="./jquery-3.3.1.min.js"></script>
+  <script src="./md5.js"></script>
 
   <script src="../node_modules/video.js/dist/video.min.js"></script>
   <script src="../node_modules/recordrtc/RecordRTC.js"></script>
@@ -13,8 +15,11 @@
   <script src="../node_modules/wavesurfer.js/dist/wavesurfer.min.js"></script>
   <script src="../node_modules/wavesurfer.js/dist/plugin/wavesurfer.microphone.min.js"></script>
   <script src="../node_modules/videojs-wavesurfer/dist/videojs.wavesurfer.min.js"></script>
+  <script src="../node_modules/base64-js/base64js.min.js"></script>
 
   <script src="../dist/videojs.record.js"></script>
+  <script src="../../node_modules/fine-uploader/fine-uploader/fine-uploader.js"></script>
+
 
   <style>
   /* change player background color */
@@ -48,7 +53,9 @@ var player = videojs("myAudio", {
             audio: true,
             video: false,
             maxLength: 20,
-            debug: true
+            debug: true,
+            audioSampleRate: 32000
+            // timeSlice: 2000
         }
     }
 }, function() {
@@ -57,6 +64,17 @@ var player = videojs("myAudio", {
         'with videojs-record', videojs.getPluginVersion('record'),
         '+ videojs-wavesurfer', videojs.getPluginVersion('wavesurfer'),
         'and recordrtc', RecordRTC.version);
+});
+
+// initialize Fine Uploader
+var uploader = new qq.FineUploaderBasic({
+    debug: true,
+    request: {
+        endpoint: 'http://127.0.0.1:8000/webiat/'
+    },
+    validation: {
+        allowedExtensions: ['mp3', 'ogg', 'oga', 'ogg']
+    }
 });
 
 // error handling
@@ -77,8 +95,71 @@ player.on('startRecord', function() {
 player.on('finishRecord', function() {
     // the blob object contains the recorded data that
     // can be downloaded by the user, stored on server etc.
-    console.log('finished recording: ', player.recordedData);
+    var audioFile = player.recordedData;
+    console.log('finished recording: ', audioFile);
+    // upload data to server
+    var filesList = [audioFile];
+    uploader.addFiles(filesList);
+
 });
+
+// monitor stream data during recording
+player.on('timestamp', function() {
+    // timestamps
+    console.log('current timestamp: ', player.currentTimestamp);
+    console.log('all timestamps: ', player.allTimestamps);
+
+    // stream data
+    console.log('array of blobs: ', player.recordedData);
+    // or construct a single blob:
+    // var blob = new Blob(blobs, {
+    //     type: 'video/webm'
+    // });
+});
+function ajax(options) {
+  return new Promise(function (resolve, reject) {
+    $.ajax(options).done(resolve).fail(reject);
+  });
+}
+function postDataToDjangoApp(recordedData){
+  var url = 'http://127.0.0.1:8000/webiat/';
+  var formData = new FormData();
+  formData.append('Data', recordedData);
+  var options = {
+    'url': url,
+    'method': 'POST',
+    'processData': false,
+    // 'contentType': false,
+    'data': recordedData,
+    'cache': false,
+  }
+  return ajax(options);
+}
+var BASE_URL = 'http://api.xfyun.cn';
+function postDataToXunfei(recordedData){
+  // var base64 = new Base64(); 
+  var binaryData = recordedData;
+  var url = BASE_URL + '/v1/aiui/v1/iat';
+  var configVideo =  {"auf":"8k","aue":"raw","scene":"main"};
+  var headParam = btoa(configVideo);  
+  var bodyData = btoa(binaryData);
+  var currentTime = Math.floor((new Date()).getTime()/1000);
+  var API_KEY = '5a813b67';
+  console.log("base64 encode:" + headParam);  
+  var options = {
+    'url': url, 
+    'method': 'POST',
+    'contentType': 'application/x-www-form-urlencoded; charset=utf-8',
+    beforeSend: function(request) {
+      request.setRequestHeader('X-Appid', API_KEY);
+      request.setRequestHeader('X-CurTime', currentTime);
+      request.setRequestHeader('X-Param', headParam);
+      request.setRequestHeader('X-CheckSum', hex_md5(API_KEY + currentTime + headParam + bodyData));
+    },
+    data: bodyData
+  };
+  return ajax(options);
+}
 </script>
 </body>
 </html>
