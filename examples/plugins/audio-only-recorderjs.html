@@ -30,6 +30,8 @@
 <div>
   <span id="resultTxt">识别结果：</span>
 </div>
+<div id="tts">
+</div>
 <script>
 var player = videojs("myAudio", {
     controls: true,
@@ -80,13 +82,14 @@ var uploader = new qq.FineUploaderBasic({
         if(uploadedBytes == totalBytes){
           document.getElementById('resultTxt').innerHTML = "上传完成，正在等待讯飞返回结果";
         }
+        console.log(uploadedBytes/totalBytes, uploadedBytes, totalBytes);
         document.getElementById('resultTxt').innerHTML = "已经上传：" + uploadedBytes/totalBytes * 100 + "%";
       },
       onComplete: function(id, fileName, responseJSON) {
         console.log(id, fileName, responseJSON)
         var resultTxt = "识别结果：" + responseJSON['result'];
         document.getElementById('resultTxt').innerHTML = resultTxt;
-        
+        tts('收到你的请求，我马上处理');
       }
     }
 });
@@ -113,6 +116,15 @@ player.on('finishRecord', function() {
     var filesList = [audioFile];
     uploader.addFiles(filesList);
 });
+
+function tts(zhText){
+  var zhText = encodeURI(zhText);
+  var content = "<audio autoplay=\"autoplay\">" + 
+    "<source src=\"http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&spd=2&text="+ zhText +"\" type=\"audio/mpeg\">" + 
+    "<embed height=\"0\" width=\"0\" src=\"http://tts.baidu.com/text2audio?lan=zh&ie=UTF-8&spd=2&text="+ zhText +"\">" + 
+    "</audio>";
+  document.getElementById('tts').innerHTML = content;
+}
 </script>
 </body>
 </html>
