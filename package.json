@@ -103,6 +103,7 @@
   },
   "dependencies": {
     "base64-js": "^1.2.1",
+    "express": "^4.16.2",
     "recordrtc": ">=5.4.6",
     "video.js": ">=6.2.7",
     "videojs-wavesurfer": ">=2.2.0",

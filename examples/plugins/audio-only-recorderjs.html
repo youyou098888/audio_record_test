@@ -73,6 +73,15 @@ var uploader = new qq.FineUploaderBasic({
     },
     callbacks: {
       //上传完成后
+      onUpload: function(id, fileName){
+        document.getElementById('resultTxt').innerHTML = "准备识别"
+      },
+      onProgress: function(id, fileName, uploadedBytes, totalBytes){
+        if(uploadedBytes == totalBytes){
+          document.getElementById('resultTxt').innerHTML = "上传完成，正在等待讯飞返回结果";
+        }
+        document.getElementById('resultTxt').innerHTML = "已经上传：" + uploadedBytes/totalBytes * 100 + "%";
+      },
       onComplete: function(id, fileName, responseJSON) {
         console.log(id, fileName, responseJSON)
         var resultTxt = "识别结果：" + responseJSON['result'];
